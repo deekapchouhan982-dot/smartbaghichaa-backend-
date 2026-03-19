@@ -1,0 +1,30 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+.eclipse/
+.classpath
+.project
+.settings/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these (contain real DB/mail/JWT credentials)
+application.properties
+application-local.properties
+.env
+
+# Spring Boot dev tools
+spring-devtools.properties

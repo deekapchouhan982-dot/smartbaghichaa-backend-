@@ -1,0 +1,16 @@
+{
+  "name": "Smart Baghichaa",
+  "short_name": "Baghichaa",
+  "description": "Smart Urban Gardening",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2d6a4f",
+  "background_color": "#f0f4f0",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
