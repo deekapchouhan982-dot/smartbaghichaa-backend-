@@ -4,6 +4,7 @@ import com.smartbaghichaa.dto.CommentRequest;
 import com.smartbaghichaa.dto.PostRequest;
 import com.smartbaghichaa.security.JwtUtil;
 import com.smartbaghichaa.service.CommunityService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,18 +13,40 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/community")
-@CrossOrigin(origins = "*")
 public class CommunityController {
 
     @Autowired private CommunityService communityService;
     @Autowired private JwtUtil jwtUtil;
 
-    // ── GET /api/community/posts (public) ─────────────────────────────────
+    // ── GET /api/community/posts?page=0&size=10 (public) ─────────────────
     @GetMapping("/posts")
-    public ResponseEntity<?> getPosts(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> getPosts(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0) page = 0;
+        if (size < 1 || size > 50) size = 10;
         String viewerEmail = authHeader != null ? extractEmail(authHeader) : null;
         try {
-            return ResponseEntity.ok(Map.of("posts", communityService.getAllPosts(viewerEmail)));
+            return ResponseEntity.ok(communityService.getPostsPaged(viewerEmail, page, size));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── DELETE /api/community/posts/{id} (JWT, own posts only) ───────────
+    @DeleteMapping("/posts/{id}")
+    public ResponseEntity<?> deletePost(@RequestHeader("Authorization") String authHeader,
+                                         @PathVariable Long id) {
+        String email = extractEmail(authHeader);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        try {
+            communityService.deletePost(email, id);
+            return ResponseEntity.ok(Map.of("message", "Post deleted"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
@@ -32,7 +55,7 @@ public class CommunityController {
     // ── POST /api/community/posts (JWT) ───────────────────────────────────
     @PostMapping("/posts")
     public ResponseEntity<?> createPost(@RequestHeader("Authorization") String authHeader,
-                                         @RequestBody PostRequest req) {
+                                         @Valid @RequestBody PostRequest req) {
         String email = extractEmail(authHeader);
         if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         try {
@@ -78,13 +101,31 @@ public class CommunityController {
     @PostMapping("/posts/{id}/comments")
     public ResponseEntity<?> addComment(@RequestHeader("Authorization") String authHeader,
                                          @PathVariable Long id,
-                                         @RequestBody CommentRequest req) {
+                                         @Valid @RequestBody CommentRequest req) {
         String email = extractEmail(authHeader);
         if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         try {
             return ResponseEntity.ok(communityService.addComment(email, id, req));
+        } catch (java.util.NoSuchElementException e) {
+            // H3: post not found → 404
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── GET /api/community/posts/{id} (M11) ──────────────────────────────
+    @GetMapping("/posts/{id}")
+    public ResponseEntity<?> getPost(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id) {
+        String viewerEmail = authHeader != null ? extractEmail(authHeader) : null;
+        try {
+            return ResponseEntity.ok(communityService.getPost(id, viewerEmail));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
@@ -95,6 +136,24 @@ public class CommunityController {
     public ResponseEntity<?> getComments(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(Map.of("comments", communityService.getComments(id)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── DELETE /api/community/comments/{id} (M9, JWT) ────────────────────
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<?> deleteComment(@RequestHeader("Authorization") String authHeader,
+                                            @PathVariable Long id) {
+        String email = extractEmail(authHeader);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        try {
+            communityService.deleteComment(email, id);
+            return ResponseEntity.ok(Map.of("deleted", true, "id", id));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

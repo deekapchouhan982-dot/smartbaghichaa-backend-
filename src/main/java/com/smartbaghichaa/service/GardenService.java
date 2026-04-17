@@ -66,6 +66,13 @@ public class GardenService {
     public Map<String, Object> addPlant(String email, AddPlantRequest req) {
         User user = findUser(email);
 
+        // ISSUE-03: Validate plant name is not blank
+        if (req.getPlantName() == null || req.getPlantName().isBlank())
+            throw new IllegalArgumentException("Plant name is required");
+        // M4: Enforce max length
+        if (req.getPlantName().length() > 100)
+            throw new IllegalArgumentException("Plant name must be 100 characters or less");
+
         if (userPlantRepository.existsByUserIdAndPlantName(user.getId(), req.getPlantName())) {
             throw new IllegalStateException("Already in your garden");
         }
@@ -78,13 +85,53 @@ public class GardenService {
 
         UserPlant saved = userPlantRepository.save(up);
 
+        // M2: Enrich emoji/category from plants catalog if not provided
+        String emoji    = saved.getPlantEmoji();
+        String category = saved.getCategory();
+        if (emoji == null || emoji.isBlank() || category == null || category.isBlank()) {
+            Optional<Plant> p = plantRepository.findByNameIgnoreCase(saved.getPlantName());
+            if (p.isPresent()) {
+                if (emoji    == null || emoji.isBlank())    emoji    = p.get().getEmoji();
+                if (category == null || category.isBlank()) category = p.get().getCategory();
+                saved.setPlantEmoji(emoji);
+                saved.setCategory(category);
+                userPlantRepository.save(saved);
+            }
+        }
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id",        saved.getId());
+        m.put("plantName", saved.getPlantName());
+        m.put("plantEmoji", emoji);
+        m.put("category",  category);
+        m.put("addedAt",   saved.getAddedAt());
+        m.put("message",   "Plant added to your garden!");
+        return m;
+    }
+
+    // ── UPDATE PLANT (ISSUE-14) ────────────────────────────────────────────
+    public Map<String, Object> updatePlant(String email, Long plantId, AddPlantRequest req) {
+        User user = findUser(email);
+        UserPlant up = userPlantRepository.findByIdAndUserId(plantId, user.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Plant not found in your garden"));
+
+        // M1: also allow updating plantName
+        if (req.getPlantName() != null && !req.getPlantName().isBlank())
+            up.setPlantName(req.getPlantName());
+        if (req.getPlantEmoji() != null && !req.getPlantEmoji().isBlank())
+            up.setPlantEmoji(req.getPlantEmoji());
+        if (req.getCategory() != null && !req.getCategory().isBlank())
+            up.setCategory(req.getCategory());
+
+        UserPlant saved = userPlantRepository.save(up);
+
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",        saved.getId());
         m.put("plantName", saved.getPlantName());
         m.put("plantEmoji",saved.getPlantEmoji());
         m.put("category",  saved.getCategory());
         m.put("addedAt",   saved.getAddedAt());
-        m.put("message",   "Plant added to your garden!");
+        m.put("message",   "Plant updated successfully");
         return m;
     }
 

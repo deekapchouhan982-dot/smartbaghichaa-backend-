@@ -25,6 +25,10 @@ public class User {
     @Column(name = "joined_at")
     private LocalDateTime joinedAt;
 
+    // H1: used to invalidate tokens issued before a password change
+    @Column(name = "password_changed_at")
+    private LocalDateTime passwordChangedAt;
+
     @PrePersist
     protected void onCreate() {
         if (joinedAt == null) joinedAt = LocalDateTime.now();
@@ -49,6 +53,8 @@ public class User {
     public void setCity(String city)       { this.city = city; }
     public LocalDateTime getJoinedAt()     { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }
+    public LocalDateTime getPasswordChangedAt()                   { return passwordChangedAt; }
+    public void setPasswordChangedAt(LocalDateTime t)             { this.passwordChangedAt = t; }
 
     public static Builder builder() { return new Builder(); }
 

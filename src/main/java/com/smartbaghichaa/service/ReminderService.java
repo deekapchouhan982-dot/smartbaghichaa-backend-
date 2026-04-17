@@ -33,8 +33,17 @@ public class ReminderService {
         User user = findUser(email);
         Reminder r = reminderRepository.findByUserId(user.getId()).orElse(new Reminder());
         r.setUserId(user.getId());
-        r.setMorningTime(getString(body, "morningTime", "07:00"));
-        r.setEveningTime(getString(body, "eveningTime", "18:00"));
+
+        // ISSUE-11: Validate time strings before saving
+        String morningTime = getString(body, "morningTime", "07:00");
+        String eveningTime = getString(body, "eveningTime", "18:00");
+        if (!isValidTime(morningTime))
+            throw new IllegalArgumentException("Invalid morning time format: " + morningTime + " — use HH:MM (e.g. 07:30)");
+        if (!isValidTime(eveningTime))
+            throw new IllegalArgumentException("Invalid evening time format: " + eveningTime + " — use HH:MM (e.g. 18:00)");
+
+        r.setMorningTime(morningTime);
+        r.setEveningTime(eveningTime);
         r.setEnabled(getBool(body, "enabled", true));
         r.setSlot1(getBool(body, "slot1", true));
         r.setSlot2(getBool(body, "slot2", true));
@@ -91,6 +100,12 @@ public class ReminderService {
         if (v instanceof Boolean) return (Boolean) v;
         if (v instanceof String)  return Boolean.parseBoolean((String) v);
         return def;
+    }
+
+    // M3: Enforce strict HH:MM (two-digit hours) — "7:00" rejected, "07:00" accepted
+    private boolean isValidTime(String time) {
+        if (time == null) return false;
+        return time.matches("^([01][0-9]|2[0-3]):[0-5][0-9]$");
     }
 
     private User findUser(String email) {

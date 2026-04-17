@@ -148,7 +148,8 @@ public class PlantService {
 
         return finalList.stream().map(p -> {
             Map<String, Object> m = toMap(p);
-            m.put("score", scoreMap.getOrDefault(p, 0));
+            m.put("score",        scoreMap.getOrDefault(p, 0));
+            // M7: removed _score/_seasonMatch/_climateMatch internal fields
             return m;
         }).collect(Collectors.toList());
     }
@@ -165,6 +166,7 @@ public class PlantService {
         m.put("water",       p.getWater());
         m.put("sun",         p.getSun());
         m.put("careLevel",   p.getCareLevel());
+        // M8: removed duplicate desc/care aliases — use description and careLevel
         m.put("seasons",     splitField(p.getSeasons()));
         m.put("climates",    splitField(p.getClimates()));
         m.put("spaces",      splitField(p.getSpaces()));

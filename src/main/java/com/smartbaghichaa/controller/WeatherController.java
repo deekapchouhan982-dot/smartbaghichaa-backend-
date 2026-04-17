@@ -1,6 +1,5 @@
 package com.smartbaghichaa.controller;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -10,202 +9,262 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/weather")
-@CrossOrigin(origins = "*")
 public class WeatherController {
-
-    @Value("${openweather.api.key:}")
-    private String apiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // ── OWM city name aliases (Indian variants → OWM-accepted names) ────────
-    private static final Map<String, String> OWM_ALIAS = new LinkedHashMap<>();
+    // ── City name → [latitude, longitude] for Indian cities ─────────────────
+    private static final Map<String, double[]> CITY_COORDS = new LinkedHashMap<>();
     static {
-        OWM_ALIAS.put("bengaluru",       "Bangalore");
-        OWM_ALIAS.put("new delhi",       "Delhi");
-        OWM_ALIAS.put("gurugram",        "Gurgaon");
-        OWM_ALIAS.put("panaji",          "Goa");
-        OWM_ALIAS.put("puducherry",      "Pondicherry");
-        OWM_ALIAS.put("thiruvananthapuram", "Trivandrum");
-        OWM_ALIAS.put("mysuru",          "Mysore");
-        OWM_ALIAS.put("vijayawada",      "Vijayawada");
-        OWM_ALIAS.put("vishakhapatnam",  "Visakhapatnam");
+        CITY_COORDS.put("mumbai",             new double[]{19.0760,  72.8777});
+        CITY_COORDS.put("delhi",              new double[]{28.6139,  77.2090});
+        CITY_COORDS.put("new delhi",          new double[]{28.6139,  77.2090});
+        CITY_COORDS.put("bangalore",          new double[]{12.9716,  77.5946});
+        CITY_COORDS.put("bengaluru",          new double[]{12.9716,  77.5946});
+        CITY_COORDS.put("hyderabad",          new double[]{17.3850,  78.4867});
+        CITY_COORDS.put("chennai",            new double[]{13.0827,  80.2707});
+        CITY_COORDS.put("kolkata",            new double[]{22.5726,  88.3639});
+        CITY_COORDS.put("pune",               new double[]{18.5204,  73.8567});
+        CITY_COORDS.put("ahmedabad",          new double[]{23.0225,  72.5714});
+        CITY_COORDS.put("jaipur",             new double[]{26.9124,  75.7873});
+        CITY_COORDS.put("lucknow",            new double[]{26.8467,  80.9462});
+        CITY_COORDS.put("kanpur",             new double[]{26.4499,  80.3319});
+        CITY_COORDS.put("nagpur",             new double[]{21.1458,  79.0882});
+        CITY_COORDS.put("indore",             new double[]{22.7196,  75.8577});
+        CITY_COORDS.put("bhopal",             new double[]{23.2599,  77.4126});
+        CITY_COORDS.put("patna",              new double[]{25.5941,  85.1376});
+        CITY_COORDS.put("vadodara",           new double[]{22.3072,  73.1812});
+        CITY_COORDS.put("surat",              new double[]{21.1702,  72.8311});
+        CITY_COORDS.put("coimbatore",         new double[]{11.0168,  76.9558});
+        CITY_COORDS.put("visakhapatnam",      new double[]{17.6868,  83.2185});
+        CITY_COORDS.put("vishakhapatnam",     new double[]{17.6868,  83.2185});
+        CITY_COORDS.put("kochi",              new double[]{ 9.9312,  76.2673});
+        CITY_COORDS.put("thiruvananthapuram", new double[]{ 8.5241,  76.9366});
+        CITY_COORDS.put("goa",                new double[]{15.2993,  74.1240});
+        CITY_COORDS.put("panaji",             new double[]{15.4909,  73.8278});
+        CITY_COORDS.put("chandigarh",         new double[]{30.7333,  76.7794});
+        CITY_COORDS.put("shimla",             new double[]{31.1048,  77.1734});
+        CITY_COORDS.put("dehradun",           new double[]{30.3165,  78.0322});
+        CITY_COORDS.put("amritsar",           new double[]{31.6340,  74.8723});
+        CITY_COORDS.put("ludhiana",           new double[]{30.9010,  75.8573});
+        CITY_COORDS.put("jodhpur",            new double[]{26.2389,  73.0243});
+        CITY_COORDS.put("udaipur",            new double[]{24.5854,  73.7125});
+        CITY_COORDS.put("raipur",             new double[]{21.2514,  81.6296});
+        CITY_COORDS.put("bhubaneswar",        new double[]{20.2961,  85.8245});
+        CITY_COORDS.put("jabalpur",           new double[]{23.1815,  79.9864});
+        CITY_COORDS.put("ujjain",             new double[]{23.1765,  75.7885});
+        CITY_COORDS.put("gwalior",            new double[]{26.2183,  78.1828});
+        CITY_COORDS.put("mysuru",             new double[]{12.2958,  76.6394});
+        CITY_COORDS.put("mysore",             new double[]{12.2958,  76.6394});
+        CITY_COORDS.put("madurai",            new double[]{ 9.9252,  78.1198});
+        CITY_COORDS.put("agra",               new double[]{27.1767,  78.0081});
+        CITY_COORDS.put("varanasi",           new double[]{25.3176,  82.9739});
+        CITY_COORDS.put("noida",              new double[]{28.5355,  77.3910});
+        CITY_COORDS.put("gurgaon",            new double[]{28.4595,  77.0266});
+        CITY_COORDS.put("gurugram",           new double[]{28.4595,  77.0266});
+        CITY_COORDS.put("vijayawada",         new double[]{16.5062,  80.6480});
+        CITY_COORDS.put("darjeeling",         new double[]{27.0410,  88.2663});
+        CITY_COORDS.put("ooty",               new double[]{11.4102,  76.6950});
+        CITY_COORDS.put("manali",             new double[]{32.2432,  77.1892});
+        CITY_COORDS.put("srinagar",           new double[]{34.0837,  74.7973});
+        CITY_COORDS.put("ranchi",             new double[]{23.3441,  85.3096});
+        CITY_COORDS.put("puducherry",         new double[]{11.9416,  79.8083});
     }
 
-    // ── Mock fallback: city (lowercase) → [temp °C, humidity %, condIdx] ───
-    private static final Map<String, int[]> MOCK = new LinkedHashMap<>();
-    private static final String[] CONDITIONS = {
-        "Sunny", "Humid", "Hazy", "Cloudy", "Hot", "Partly Cloudy", "Windy"
-    };
-    static {
-        MOCK.put("indore",          new int[]{32, 45, 0});
-        MOCK.put("bhopal",          new int[]{29, 55, 5});
-        MOCK.put("mumbai",          new int[]{28, 80, 1});
-        MOCK.put("delhi",           new int[]{25, 60, 2});
-        MOCK.put("new delhi",       new int[]{25, 60, 2});
-        MOCK.put("bangalore",       new int[]{22, 65, 3});
-        MOCK.put("bengaluru",       new int[]{22, 65, 3});
-        MOCK.put("chennai",         new int[]{35, 75, 4});
-        MOCK.put("jaipur",          new int[]{30, 40, 0});
-        MOCK.put("pune",            new int[]{27, 60, 5});
-        MOCK.put("hyderabad",       new int[]{30, 55, 0});
-        MOCK.put("kolkata",         new int[]{32, 78, 1});
-        MOCK.put("ahmedabad",       new int[]{33, 45, 0});
-        MOCK.put("surat",           new int[]{31, 70, 1});
-        MOCK.put("nagpur",          new int[]{34, 40, 4});
-        MOCK.put("lucknow",         new int[]{28, 60, 2});
-        MOCK.put("kanpur",          new int[]{29, 58, 2});
-        MOCK.put("patna",           new int[]{30, 65, 2});
-        MOCK.put("vadodara",        new int[]{32, 50, 0});
-        MOCK.put("coimbatore",      new int[]{28, 65, 3});
-        MOCK.put("visakhapatnam",   new int[]{30, 70, 1});
-        MOCK.put("kochi",           new int[]{29, 82, 1});
-        MOCK.put("thiruvananthapuram", new int[]{29, 80, 1});
-        MOCK.put("goa",             new int[]{30, 78, 1});
-        MOCK.put("panaji",          new int[]{30, 78, 1});
-        MOCK.put("chandigarh",      new int[]{24, 55, 5});
-        MOCK.put("shimla",          new int[]{12, 60, 3});
-        MOCK.put("dehradun",        new int[]{20, 55, 5});
-        MOCK.put("amritsar",        new int[]{26, 50, 2});
-        MOCK.put("ludhiana",        new int[]{26, 52, 2});
-        MOCK.put("jodhpur",         new int[]{35, 30, 0});
-        MOCK.put("udaipur",         new int[]{31, 40, 0});
-        MOCK.put("raipur",          new int[]{32, 60, 5});
-        MOCK.put("bhubaneswar",     new int[]{33, 70, 1});
-        MOCK.put("jabalpur",        new int[]{31, 50, 0});
-        MOCK.put("ujjain",          new int[]{31, 45, 0});
-        MOCK.put("gwalior",         new int[]{30, 48, 2});
-        MOCK.put("mysuru",          new int[]{23, 62, 3});
-        MOCK.put("mysore",          new int[]{23, 62, 3});
-        MOCK.put("madurai",         new int[]{34, 68, 4});
-        MOCK.put("agra",            new int[]{28, 55, 2});
-        MOCK.put("varanasi",        new int[]{29, 60, 2});
-        MOCK.put("noida",           new int[]{25, 58, 2});
-        MOCK.put("gurgaon",         new int[]{25, 55, 2});
-        MOCK.put("gurugram",        new int[]{25, 55, 2});
-        MOCK.put("vijayawada",      new int[]{32, 68, 1});
-        MOCK.put("darjeeling",      new int[]{14, 70, 3});
-        MOCK.put("ooty",            new int[]{16, 65, 3});
-        MOCK.put("manali",          new int[]{8,  50, 3});
-        MOCK.put("srinagar",        new int[]{14, 55, 5});
-        MOCK.put("ranchi",          new int[]{26, 60, 5});
-    }
-
-    // ── GET /api/weather/{city} ─────────────────────────────────────────────
+    // ── GET /api/weather/{city} ──────────────────────────────────────────────
     @GetMapping("/{city}")
     public ResponseEntity<?> getWeather(@PathVariable String city) {
-        // Try real API if key is configured
-        if (apiKey != null && !apiKey.isBlank() && !apiKey.equals("your_key_here")) {
-            Map<String, Object> live = fetchFromOWM(city);
-            if (live != null) return ResponseEntity.ok(live);
-        }
-        // Fall back to mock data
-        return ResponseEntity.ok(mockWeather(city));
-    }
+        String key = city.toLowerCase().trim().replace("-", " ");
+        double[] coords = CITY_COORDS.get(key);
 
-    // ── OpenWeatherMap real API call ────────────────────────────────────────
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> fetchFromOWM(String city) {
-        try {
-            String key = city.toLowerCase().trim();
-            String owmCity = OWM_ALIAS.getOrDefault(key, titleCase(city));
-            String url = "https://api.openweathermap.org/data/2.5/weather"
-                + "?q=" + java.net.URLEncoder.encode(owmCity + ",IN", "UTF-8")
-                + "&appid=" + apiKey
-                + "&units=metric";
-
-            Map<?, ?> resp = restTemplate.getForObject(url, Map.class);
-            if (resp == null) return null;
-
-            Map<?, ?> main    = (Map<?, ?>) resp.get("main");
-            java.util.List<?> weather = (java.util.List<?>) resp.get("weather");
-            if (main == null || weather == null || weather.isEmpty()) return null;
-
-            Map<?, ?> w0 = (Map<?, ?>) weather.get(0);
-
-            int    temp     = (int) Math.round(((Number) main.get("temp")).doubleValue());
-            int    humidity = ((Number) main.get("humidity")).intValue();
-            String owmDesc  = (String) w0.get("main");   // "Clear", "Clouds", "Rain" …
-            String cond     = owmToCondition(owmDesc);
-
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("city",      titleCase(city));
-            result.put("temp",      temp);
-            result.put("condition", cond);
-            result.put("humidity",  humidity);
-            result.put("unit",      "°C");
-            result.put("emoji",     conditionEmoji(cond));
-            result.put("source",    "live");
-            return result;
-
-        } catch (Exception e) {
-            System.err.println("[Weather] OWM API failed for " + city + ": " + e.getMessage());
-            return null;
-        }
-    }
-
-    // ── Mock fallback ───────────────────────────────────────────────────────
-    private Map<String, Object> mockWeather(String city) {
-        String key  = city.toLowerCase().trim().replace("-", " ");
-        int[]  data = MOCK.get(key);
-
-        if (data == null) {
-            for (Map.Entry<String, int[]> e : MOCK.entrySet()) {
+        // Fuzzy match if exact key not found
+        if (coords == null) {
+            for (Map.Entry<String, double[]> e : CITY_COORDS.entrySet()) {
                 if (key.contains(e.getKey()) || e.getKey().contains(key)) {
-                    data = e.getValue();
+                    coords = e.getValue();
                     break;
                 }
             }
         }
 
-        int    temp     = data != null ? data[0] : 28;
-        int    humidity = data != null ? data[1] : 60;
-        String cond     = data != null ? CONDITIONS[data[2]] : "Sunny";
+        if (coords != null) {
+            Map<String, Object> live = fetchFromOpenMeteo(coords[0], coords[1], titleCase(city));
+            if (live != null) return ResponseEntity.ok(live);
+        }
+
+        // ISSUE-13: Unknown city — return error instead of falling back to India center coords
+        if (coords == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                "error", "City not found. Please check the city name or use a major Indian city."));
+        }
+
+        return ResponseEntity.ok(mockWeather(city));
+    }
+
+    // ── GET /api/weather/coords?lat={lat}&lon={lon} ──────────────────────────
+    @GetMapping("/coords")
+    public ResponseEntity<?> getWeatherByCoords(
+            @RequestParam double lat,
+            @RequestParam double lon) {
+        Map<String, Object> live = fetchFromOpenMeteo(lat, lon, "Your Location");
+        if (live != null) return ResponseEntity.ok(live);
+
+        // Fallback mock
+        Map<String, Object> fallback = new LinkedHashMap<>();
+        fallback.put("city",      "Your Location");
+        fallback.put("temp",      29);
+        fallback.put("feelsLike", 31);
+        fallback.put("humidity",  60);
+        fallback.put("windSpeed", 12);
+        fallback.put("condition", "Partly Cloudy");
+        fallback.put("emoji",     "⛅");
+        fallback.put("advice",    gardeningAdvice(29, "Partly Cloudy"));
+        fallback.put("source",    "mock");
+        return ResponseEntity.ok(fallback);
+    }
+
+    // ── Fetch live data from Open-Meteo (no API key required) ───────────────
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> fetchFromOpenMeteo(double lat, double lon, String cityName) {
+        try {
+            String url = "https://api.open-meteo.com/v1/forecast"
+                + "?latitude="  + lat
+                + "&longitude=" + lon
+                + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m"
+                + "&timezone=auto"
+                + "&wind_speed_unit=kmh";
+
+            Map<?, ?> resp = restTemplate.getForObject(url, Map.class);
+            if (resp == null) return null;
+
+            Map<?, ?> current = (Map<?, ?>) resp.get("current");
+            if (current == null) return null;
+
+            int    temp      = (int) Math.round(((Number) current.get("temperature_2m")).doubleValue());
+            int    feelsLike = (int) Math.round(((Number) current.get("apparent_temperature")).doubleValue());
+            int    humidity  = ((Number) current.get("relative_humidity_2m")).intValue();
+            int    windSpeed = (int) Math.round(((Number) current.get("wind_speed_10m")).doubleValue());
+            int    code      = ((Number) current.get("weather_code")).intValue();
+
+            String condition = wmoToCondition(code);
+            String emoji     = conditionEmoji(condition);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("city",      cityName);
+            result.put("temp",      temp);
+            result.put("feelsLike", feelsLike);
+            result.put("humidity",  humidity);
+            result.put("windSpeed", windSpeed);
+            result.put("condition", condition);
+            result.put("emoji",     emoji);
+            result.put("advice",    gardeningAdvice(temp, condition));
+            result.put("source",    "live");
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("[Weather] Open-Meteo failed for " + cityName + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    // ── WMO Weather Code → friendly condition name ───────────────────────────
+    // Full code table: https://open-meteo.com/en/docs#weathervariables
+    private String wmoToCondition(int code) {
+        if (code == 0)                          return "Sunny";
+        if (code <= 2)                          return "Partly Cloudy";
+        if (code == 3)                          return "Cloudy";
+        if (code == 45 || code == 48)           return "Foggy";
+        if (code >= 51 && code <= 55)           return "Drizzle";
+        if (code >= 56 && code <= 57)           return "Drizzle";
+        if (code >= 61 && code <= 67)           return "Rainy";
+        if (code >= 71 && code <= 77)           return "Cloudy";
+        if (code >= 80 && code <= 82)           return "Rainy";
+        if (code == 85 || code == 86)           return "Cloudy";
+        if (code == 95)                         return "Thunderstorm";
+        if (code == 96 || code == 99)           return "Thunderstorm";
+        return "Partly Cloudy";
+    }
+
+    // ── Condition → Emoji ────────────────────────────────────────────────────
+    private String conditionEmoji(String cond) {
+        if (cond == null) return "🌤️";
+        switch (cond) {
+            case "Sunny":          return "☀️";
+            case "Partly Cloudy":  return "⛅";
+            case "Cloudy":         return "☁️";
+            case "Rainy":          return "🌧️";
+            case "Drizzle":        return "🌦️";
+            case "Thunderstorm":   return "⛈️";
+            case "Foggy":          return "🌫️";
+            case "Hazy":           return "🌫️";
+            case "Windy":          return "💨";
+            case "Hot":            return "🌡️";
+            default:               return "🌤️";
+        }
+    }
+
+    // ── Gardening advice based on temp + condition ───────────────────────────
+    private String gardeningAdvice(int temp, String condition) {
+        if (condition == null) condition = "";
+        String c = condition.toLowerCase();
+        if (c.contains("thunderstorm"))
+            return "⛈️ Keep plants sheltered — bring indoor plants away from windows";
+        if (c.contains("rain") || c.contains("drizzle"))
+            return "🌧️ Skip watering today — rain will take care of your plants!";
+        if (c.contains("fog") || c.contains("foggy"))
+            return "🌫️ Good moisture today — succulents and cacti don't need water";
+        if (temp > 38)
+            return "🔥 Extreme heat — water twice daily and move sensitive plants to shade";
+        if (temp >= 33)
+            return "☀️ Very hot — water morning and evening, check soil moisture";
+        if (temp >= 28)
+            return "🌱 Good growing day — check soil moisture before watering";
+        if (temp >= 22)
+            return "✨ Perfect gardening weather! Ideal for transplanting";
+        if (temp >= 15)
+            return "🌿 Cool and pleasant — great day for outdoor gardening";
+        return "🧥 Cold day — protect sensitive plants and reduce watering";
+    }
+
+    // ── Mock fallback (kept as safety net) ──────────────────────────────────
+    private static final String[] CONDITIONS = {
+        "Sunny", "Rainy", "Hazy", "Cloudy", "Hot", "Partly Cloudy", "Windy"
+    };
+    private static final Map<String, int[]> MOCK = new LinkedHashMap<>();
+    static {
+        MOCK.put("indore",             new int[]{32, 45, 0, 12});
+        MOCK.put("bhopal",             new int[]{29, 55, 5, 10});
+        MOCK.put("mumbai",             new int[]{28, 80, 1, 18});
+        MOCK.put("delhi",              new int[]{25, 60, 2, 14});
+        MOCK.put("bangalore",          new int[]{22, 65, 3, 11});
+        MOCK.put("bengaluru",          new int[]{22, 65, 3, 11});
+        MOCK.put("chennai",            new int[]{35, 75, 4, 16});
+        MOCK.put("jaipur",             new int[]{30, 40, 0, 15});
+        MOCK.put("pune",               new int[]{27, 60, 5, 13});
+        MOCK.put("hyderabad",          new int[]{30, 55, 0, 12});
+        MOCK.put("kolkata",            new int[]{32, 78, 1, 17});
+    }
+
+    private Map<String, Object> mockWeather(String city) {
+        String key  = city.toLowerCase().trim().replace("-", " ");
+        int[]  data = MOCK.get(key);
+        int    temp      = data != null ? data[0] : 28;
+        int    humidity  = data != null ? data[1] : 60;
+        String cond      = data != null ? CONDITIONS[data[2]] : "Sunny";
+        int    windSpeed = data != null && data.length > 3 ? data[3] : 12;
+        int    feelsLike = temp + (humidity > 70 ? 3 : humidity > 50 ? 1 : -1);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("city",      titleCase(city));
         result.put("temp",      temp);
-        result.put("condition", cond);
+        result.put("feelsLike", feelsLike);
         result.put("humidity",  humidity);
-        result.put("unit",      "°C");
+        result.put("windSpeed", windSpeed);
+        result.put("condition", cond);
         result.put("emoji",     conditionEmoji(cond));
+        result.put("advice",    gardeningAdvice(temp, cond));
         result.put("source",    "mock");
         return result;
-    }
-
-    // ── OWM condition → friendly condition name ─────────────────────────────
-    private String owmToCondition(String owm) {
-        if (owm == null) return "Sunny";
-        switch (owm) {
-            case "Clear":        return "Sunny";
-            case "Clouds":       return "Cloudy";
-            case "Drizzle":
-            case "Rain":         return "Humid";
-            case "Thunderstorm": return "Cloudy";
-            case "Snow":         return "Cloudy";
-            case "Mist":
-            case "Fog":
-            case "Haze":
-            case "Smoke":
-            case "Dust":
-            case "Sand":         return "Hazy";
-            case "Squall":
-            case "Tornado":      return "Windy";
-            default:             return "Partly Cloudy";
-        }
-    }
-
-    private String conditionEmoji(String cond) {
-        switch (cond) {
-            case "Sunny":         return "☀️";
-            case "Humid":         return "🌧️";
-            case "Hazy":          return "🌫️";
-            case "Cloudy":        return "☁️";
-            case "Hot":           return "🌡️";
-            case "Partly Cloudy": return "⛅";
-            case "Windy":         return "💨";
-            default:              return "🌤️";
-        }
     }
 
     private String titleCase(String s) {

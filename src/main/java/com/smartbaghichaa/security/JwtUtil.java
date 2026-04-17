@@ -51,4 +51,18 @@ public class JwtUtil {
             return false;
         }
     }
+
+    // H1: returns when the token was issued (for password-change invalidation check)
+    public java.util.Date extractIssuedAt(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getIssuedAt();
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
 }

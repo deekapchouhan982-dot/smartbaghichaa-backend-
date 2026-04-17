@@ -2,6 +2,7 @@ package com.smartbaghichaa.controller;
 
 import com.smartbaghichaa.dto.RecommendRequest;
 import com.smartbaghichaa.service.PlantService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/plants")
-@CrossOrigin(origins = "*")
 public class PlantController {
 
     @Autowired
@@ -33,7 +33,7 @@ public class PlantController {
 
     // ── POST /api/plants/recommend ─────────────────────────────────────────
     @PostMapping("/recommend")
-    public ResponseEntity<?> recommend(@RequestBody RecommendRequest req) {
+    public ResponseEntity<?> recommend(@Valid @RequestBody RecommendRequest req) {
         try {
             if (req.getCity() == null || req.getCity().isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "City is required"));

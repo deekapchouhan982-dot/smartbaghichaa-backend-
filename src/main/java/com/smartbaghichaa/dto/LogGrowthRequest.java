@@ -1,11 +1,21 @@
 package com.smartbaghichaa.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class LogGrowthRequest {
+
+    @NotNull(message = "Plant ID is required")
     private Long plantId;       // user_plants.id
+
     private String stage;
+
+    @Min(value = 0, message = "Health score must be 0–100")
+    @Max(value = 100, message = "Health score must be 0–100")
     private Integer healthScore;
+
     private String watering;
     private String sunlight;
     private String soilCondition;
@@ -14,6 +24,13 @@ public class LogGrowthRequest {
     private List<String> observations;
     private String fertiliser;
     private String notes;
+    private Boolean aiAnalyzed;
+
+    @Min(value = 0, message = "AI health score must be 0–100")
+    @Max(value = 100, message = "AI health score must be 0–100")
+    private Integer aiHealthScore;
+
+    private String city;  // ISSUE-08: optional city for weather-aware smart tips
 
     public Long getPlantId()                        { return plantId; }
     public void setPlantId(Long p)                  { this.plantId = p; }
@@ -37,4 +54,10 @@ public class LogGrowthRequest {
     public void setFertiliser(String f)             { this.fertiliser = f; }
     public String getNotes()                        { return notes; }
     public void setNotes(String n)                  { this.notes = n; }
+    public Boolean getAiAnalyzed()                  { return aiAnalyzed; }
+    public void setAiAnalyzed(Boolean a)            { this.aiAnalyzed = a; }
+    public Integer getAiHealthScore()               { return aiHealthScore; }
+    public void setAiHealthScore(Integer s)         { this.aiHealthScore = s; }
+    public String getCity()                         { return city; }
+    public void setCity(String c)                   { this.city = c; }
 }

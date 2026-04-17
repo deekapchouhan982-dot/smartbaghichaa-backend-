@@ -47,6 +47,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository.findByEmail(email).ifPresent(user -> {
+                // H1: Reject tokens issued before the last password change.
+                // JWT stores iat as Unix seconds (floor), so truncate passwordChangedAt to seconds
+                // before comparing — otherwise a token generated in the same second as the password
+                // change would have iat (floor) < changedAt (ms), causing immediate self-invalidation.
+                java.util.Date issuedAt = jwtUtil.extractIssuedAt(token);
+                if (user.getPasswordChangedAt() != null && issuedAt != null) {
+                    long issuedAtMs = issuedAt.getTime();
+                    long changedAtMs = user.getPasswordChangedAt()
+                            .truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+                            .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                    if (issuedAtMs < changedAtMs) {
+                        // Token predates last password change — silently skip (treat as unauthenticated)
+                        return;
+                    }
+                }
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 user.getEmail(), null, Collections.emptyList());

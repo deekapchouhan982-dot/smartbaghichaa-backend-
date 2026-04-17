@@ -1,9 +1,13 @@
 package com.smartbaghichaa.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 public class RecommendRequest {
+
+    @NotBlank(message = "City is required")
     private String city;
+
     private String season;
     private String space;
     private String experience;

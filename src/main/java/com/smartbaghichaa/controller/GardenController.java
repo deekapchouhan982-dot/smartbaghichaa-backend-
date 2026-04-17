@@ -3,6 +3,7 @@ package com.smartbaghichaa.controller;
 import com.smartbaghichaa.dto.AddPlantRequest;
 import com.smartbaghichaa.security.JwtUtil;
 import com.smartbaghichaa.service.GardenService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/garden")
-@CrossOrigin(origins = "*")
 public class GardenController {
 
     @Autowired
@@ -26,7 +26,7 @@ public class GardenController {
         String email = extractEmail(authHeader);
         if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Invalid or missing token"));
         try {
-            return ResponseEntity.ok(Map.of("garden", gardenService.getGarden(email)));
+            return ResponseEntity.ok(Map.of("plants", gardenService.getGarden(email)));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
@@ -35,13 +35,31 @@ public class GardenController {
     // ── POST /api/garden/add ──────────────────────────────────────────────
     @PostMapping("/add")
     public ResponseEntity<?> addPlant(@RequestHeader("Authorization") String authHeader,
-                                       @RequestBody AddPlantRequest req) {
+                                       @Valid @RequestBody AddPlantRequest req) {
         String email = extractEmail(authHeader);
         if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Invalid or missing token"));
         try {
             return ResponseEntity.ok(gardenService.addPlant(email, req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── PUT /api/garden/{id} (ISSUE-14) ──────────────────────────────────
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updatePlant(@RequestHeader("Authorization") String authHeader,
+                                          @PathVariable Long id,
+                                          @Valid @RequestBody AddPlantRequest req) {
+        String email = extractEmail(authHeader);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("error", "Invalid or missing token"));
+        try {
+            return ResponseEntity.ok(gardenService.updatePlant(email, id, req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }

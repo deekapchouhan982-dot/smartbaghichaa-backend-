@@ -42,6 +42,12 @@ public class GrowthLog {
     @Column(name = "smart_tip", columnDefinition = "TEXT")
     private String smartTip;
 
+    @Column(name = "ai_analyzed")
+    private Boolean aiAnalyzed;
+
+    @Column(name = "ai_health_score")
+    private Integer aiHealthScore;
+
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
 
@@ -78,6 +84,10 @@ public class GrowthLog {
     public void setNotes(String n)             { this.notes = n; }
     public String getSmartTip()                { return smartTip; }
     public void setSmartTip(String t)          { this.smartTip = t; }
+    public Boolean getAiAnalyzed()             { return aiAnalyzed; }
+    public void setAiAnalyzed(Boolean a)       { this.aiAnalyzed = a; }
+    public Integer getAiHealthScore()          { return aiHealthScore; }
+    public void setAiHealthScore(Integer s)    { this.aiHealthScore = s; }
     public LocalDateTime getLoggedAt()         { return loggedAt; }
     public void setLoggedAt(LocalDateTime t)   { this.loggedAt = t; }
 }

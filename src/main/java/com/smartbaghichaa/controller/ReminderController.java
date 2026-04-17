@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reminders")
-@CrossOrigin(origins = "*")
 public class ReminderController {
 
     @Autowired
@@ -32,6 +31,8 @@ public class ReminderController {
                                            @RequestBody Map<String, Object> body) {
         try {
             return ResponseEntity.ok(reminderService.saveReminders(principal.getName(), body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
