@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests -q
 # ── Stage 2: Run ────────────────────────────────────────────────────────────
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/smart-baghichaa-1.0.0.jar app.jar
+COPY --from=build /app/target/smart-baghichaa-app.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]
